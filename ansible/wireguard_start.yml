@@ -1,0 +1,16 @@
+---
+- name: Start wireguard for the router
+  hosts: router
+
+  tasks:
+    - name: Start wireguard
+      ansible.builtin.include_tasks: ./tasks/wireguard_start.yml
+
+- name: Start wireguard for both the vulnbox and the server
+  hosts:
+    - vulnbox
+    - server
+
+  tasks:
+    - name: Start wireguard
+      ansible.builtin.include_tasks: ./tasks/wireguard_start.yml

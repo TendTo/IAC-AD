@@ -1,0 +1,35 @@
+---
+- name: Install wireguard (Debian)
+  become: true
+  ansible.builtin.apt:
+    package: wireguard
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Install wireguard (RedHat)
+  become: true
+  ansible.builtin.dnf:
+    name: wireguard-tools
+    state: present
+    update_cache: true
+  when: ansible_os_family == "RedHat"
+
+- name: Install wireguard (Arch)
+  become: true
+  community.general.pacman:
+    name: wireguard-tools
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Archlinux"
+
+- name: Copy authorized keys to /root
+  become: true
+  ansible.builtin.copy:
+    remote_src: true
+    src: /home/{{ ansible_user }}/.ssh/authorized_keys
+    dest: /root/.ssh/authorized_keys
+    owner: root
+    group: root
+    mode: "0600"
+  when: ansible_user != "root"

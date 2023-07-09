@@ -1,0 +1,29 @@
+---
+- name: "Get the vulnbox ip in the vpn"
+  ansible.builtin.set_fact:
+    ip: "{{ wireguard.vulnbox.ip_format | format(groups.vulnbox.index(inventory_hostname) + 1) }}"
+
+- name: Generate wireguard private and public keys
+  become: true
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
+  args:
+    creates: /etc/wireguard/privatekey
+    executable: /bin/bash
+
+- name: Store public key in variable
+  become: true
+  ansible.builtin.slurp:
+    src: /etc/wireguard/publickey
+  register: vulnbox_pk
+
+- name: Wireguard config
+  become: true
+  ansible.builtin.template:
+    src: templates/vulnbox.wireguard.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    owner: root
+    group: root
+    mode: "0600"

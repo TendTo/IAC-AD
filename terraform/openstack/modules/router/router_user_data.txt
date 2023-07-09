@@ -1,0 +1,9 @@
+#cloud-config
+password: mypasswd
+chpasswd: { expire: False }
+ssh_pwauth: True
+runcmd:
+  - sysctl -w net.ipv4.ip_forward=1
+  - sysctl -p
+  - echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+  - iptables -t nat -A POSTROUTING -o ens3 -j MASQUERADE

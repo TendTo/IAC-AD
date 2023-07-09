@@ -1,0 +1,6 @@
+#cloud-config
+password: mypasswd
+chpasswd: { expire: False }
+ssh_pwauth: True
+runcmd:
+  - ip route add default via %s

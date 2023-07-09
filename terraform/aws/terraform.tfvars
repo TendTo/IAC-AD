@@ -1,0 +1,11 @@
+iac_ad_aws_credentials_file  = "~/.aws/credentials"
+iac_ad_aws_region            = "us-east-1"
+iac_ad_aws_profile           = "learner_lab"
+iac_ad_vulnbox_image_id      = "ami-053b0d53c279acc90"
+iac_ad_vulnbox_instance_type = "t2.medium"
+iac_ad_router_image_id       = "ami-053b0d53c279acc90"
+iac_ad_router_instance_type  = "t2.micro"
+iac_ad_server_image_id       = "ami-053b0d53c279acc90"
+iac_ad_server_instance_type  = "t2.micro"
+iac_ad_vulnbox_count         = 2
+iac_ad_server_ports          = [22, 80, 443]

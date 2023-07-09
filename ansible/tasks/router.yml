@@ -1,0 +1,133 @@
+---
+- name: Generate wireguard private and public keys
+  become: true
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
+  args:
+    creates: /etc/wireguard/privatekey
+    executable: /bin/bash
+
+- name: Store public key in variable
+  become: true
+  ansible.builtin.slurp:
+    src: /etc/wireguard/publickey
+  register: router_pk
+
+- name: "Create a list of dictionaries in the format {'team_name': team_name, 'conf_file': conf_file, 'sk': secret_key, 'pk': public_key, 'ip': ip}"
+  ansible.builtin.set_fact:
+    player_configs: "{{ player_configs | default([]) + player_dicts }}"
+  vars:
+    # -1 is a hack substitute for the regex_replace function to work
+    player_ip: "{{ wireguard.player.ip_format | format(team_id + 1, -1) | regex_replace('-1', '\\\\1') }}"
+    # 10.80.%d.%d | format -> 10.80.1.-1 -> regex_replace -> 10.80.1.\\1
+    player_dicts: "{{ range(1, item.players + 1)
+      | map('regex_replace',
+      '^(.*)$',
+      'ip: ' + player_ip
+      + '\nteam_name: ' + item.name
+      + '\nconf_file: ' + item.name + '-\\1.conf'
+      + '\npk: false'
+      + '\nsk: false')
+      | map('from_yaml')
+      | list }}"
+  with_items:
+    - "{{ teams }}"
+  loop_control:
+    index_var: team_id
+
+- name: Create the folder teams
+  ansible.builtin.file:
+    path: teams
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Check whether a player's config file exist
+  ansible.builtin.stat:
+    path: "teams/{{ item }}"
+  register: player_conf_file_stats
+  with_items:
+    - "{{ player_configs | map(attribute='conf_file') | list }}"
+
+- name: Generate private keys for each player
+  ansible.builtin.command: wg genkey
+  register: player_secret_keys
+  with_items:
+    - "{{ player_configs }}"
+  changed_when: false
+
+- name: Update the player_configs with the newly created secret keys
+  ansible.builtin.set_fact:
+    player_configs: "{{ player_configs | default([]) | community.general.lists_mergeby(new_player_configs, 'conf_file') }}"
+  vars:
+    new_player_configs: "{{ [player_configs[idx] | combine({'sk': item.stdout})] }}"
+  loop_control:
+    index_var: idx
+  with_items:
+    - "{{ player_secret_keys.results }}"
+
+- name: Read the private key from the existing players config files
+  ansible.builtin.slurp:
+    src: "teams/{{ item }}"
+  with_items:
+    - "{{ player_configs | map(attribute='conf_file') | list }}"
+  register: team_conf_files_content
+  loop_control:
+    index_var: idx
+  when: player_conf_file_stats.results[idx].stat.exists
+
+- name: Update the player_configs with the private keys found in the config files
+  ansible.builtin.set_fact:
+    player_configs: "{{ player_configs | default([]) | community.general.lists_mergeby(new_player_configs, 'conf_file') }}"
+  vars:
+    player_sk: "{{ item.content | b64decode | regex_findall('PrivateKey = (.*)', '\\1') | first }}"
+    query: "[?conf_file=='{{ item.item }}']"
+    new_player_configs: "{{ player_configs | default([])
+      | json_query(query)
+      | map('combine', {'sk': player_sk}) }}"
+  with_items:
+    - "{{ team_conf_files_content.results }}"
+  loop_control:
+    index_var: idx
+  when: team_conf_files_content.results[idx].content is defined
+
+- name: Generate the public keys from the private keys
+  ansible.builtin.shell: wg pubkey <<< "{{ item.sk }}"
+  args:
+    executable: /bin/bash
+  register: player_public_keys
+  with_items:
+    - "{{ player_configs }}"
+  changed_when: false
+
+- name: Update the player_configs with the newly created public keys
+  ansible.builtin.set_fact:
+    player_configs: "{{ player_configs | default([]) | community.general.lists_mergeby(new_player_configs, 'conf_file') }}"
+  vars:
+    new_player_configs: "{{ [player_configs[idx] | combine({'pk': item.stdout})] }}"
+  loop_control:
+    index_var: idx
+  with_items:
+    - "{{ player_public_keys.results }}"
+
+- name: Generate the config files for each player if they don't exist
+  ansible.builtin.template:
+    src: templates/player.wireguard.conf.j2
+    dest: "teams/{{ item.conf_file }}"
+    owner: "{{ ansible_user }}"
+    mode: "0644"
+  with_items:
+    - "{{ player_configs }}"
+  loop_control:
+    index_var: idx
+  when: not player_conf_file_stats.results[idx].stat.exists
+
+- name: Copy the config files to the teams folder locally
+  ansible.builtin.fetch:
+    src: "teams/{{ item }}"
+    dest: "teams/{{ item }}"
+    flat: true
+  with_items:
+    - "{{ player_configs | map(attribute='conf_file') | list }}"

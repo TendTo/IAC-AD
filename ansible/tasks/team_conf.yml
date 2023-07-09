@@ -1,0 +1,64 @@
+---
+- name: Generate all the team config files names (teamname-n.conf)
+  ansible.builtin.set_fact: # Create a dictionary with the team name and the number of players
+    team_conf_files: "{{ team_conf_files | default([]) + range(1, item.players + 1) | list | map('regex_replace', '^(.*)$', item.name + '-\\1.conf') | list }}"
+  with_items:
+    - "{{ teams }}"
+
+- name: Check if the config files exist
+  ansible.builtin.stat:
+    path: "teams/{{ item }}"
+  register: team_conf_files_stat
+  with_items:
+    - "{{ team_conf_files }}"
+
+- name: Generate public and private keys for each player (if the config file does not exist)
+  ansible.builtin.command: wg genkey
+  register: player_keys
+  with_items:
+    - "{{ team_conf_files }}"
+  changed_when: false
+
+- name: Create the folder teams
+  ansible.builtin.file:
+    path: teams
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Read the private key from the existing players config files
+  ansible.builtin.slurp:
+    src: "teams/{{ item }}"
+  with_items:
+    - "{{ team_conf_files }}"
+  register: team_conf_files_content
+  loop_control:
+    index_var: idx
+  when: team_conf_files_stat.results[idx].stat.exists
+
+- name: Parse the config file to find the private key
+  ansible.builtin.set_fact:
+    player_keys: "{{ player_keys | default([]) + [item.content | regex_findall('PrivateKey = (.*)')] }}"
+  loop_control:
+    index_var: idx
+  with_items:
+    - "{{ team_conf_files_content.results }}"
+
+- name: Generate the config files for each player
+  ansible.builtin.template:
+    src: templates/player.wireguard.conf.j2
+    dest: "teams/{{ item.0 }}"
+    owner: "{{ ansible_user }}"
+    mode: "0644"
+  with_items:
+    - "{{ team_conf_files | zip(player_keys.results | map(attribute='stdout') | list) | list }}"
+  loop_control:
+    index_var: idx
+  when: not team_conf_files_stat.results[idx].stat.exists
+
+- name: Copy the config files to the players
+  ansible.builtin.fetch:
+    src: "teams/{{ item }}"
+    dest: "teams"
+  with_items:
+    - "{{ team_conf_files }}"

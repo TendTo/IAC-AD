@@ -1,0 +1,55 @@
+---
+- name: Wireguard config
+  become: true
+  ansible.builtin.template:
+    src: templates/router.wireguard.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    vulnboxes: "{{ groups['vulnbox'] | default([]) | map('extract', hostvars) | list }}"
+    server: "{{ hostvars['server'] }}"
+
+- name: Enable and persist ip forwarding
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    sysctl_set: true
+    reload: true
+
+- name: Restart wireguard and enable on boot
+  become: true
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    enabled: true
+
+- name: Program the starting of the network after a set delay
+  become: true
+  ansible.builtin.cron:
+    name: "Start vpn network"
+    month: "{{ start_conf.month }}"
+    day: "{{ start_conf.day }}"
+    hour: "{{ start_conf.hour }}"
+    minute: "{{ start_conf.minute }}"
+    job: "wg-quick up wg0"
+    user: root
+    state: present
+  vars:
+    start_conf: "{{ wireguard.router.start }}"
+
+- name: Program the attack phase of the network after a set delay
+  become: true
+  ansible.builtin.cron:
+    name: "Open vpn network"
+    month: "{{ open_conf.month }}"
+    day: "{{ open_conf.day }}"
+    hour: "{{ open_conf.hour }}"
+    minute: "{{ open_conf.minute }}"
+    job: "iptables -I wireguard_wg0 -i wg0 -d {{ wireguard.vulnbox.subnet }} -j ACCEPT"
+    user: root
+    state: present
+  vars:
+    open_conf: "{{ wireguard.router.open }}"

@@ -1,0 +1,59 @@
+---
+# - name: Localhos
+#   hosts: localhost
+
+#   tasks:
+#     - name: Test
+#       ansible.builtin.include_tasks: ./tasks/test_.yml
+
+- name: Common configuration
+  hosts: all
+
+  tasks:
+    - name: Common configuration
+      ansible.builtin.include_tasks: ./tasks/common.yml
+
+- name: Docker configuration
+  hosts:
+    - vulnbox
+    - server
+  tasks:
+    - name: Docker configuration
+      ansible.builtin.include_tasks: ./tasks/docker.yml
+
+- name: Router configuration
+  hosts: router
+
+  tasks:
+    - name: Router
+      ansible.builtin.include_tasks: ./tasks/router.yml
+
+- name: Vulnbox configuration
+  hosts: vulnbox
+
+  tasks:
+    - name: Vulnbox
+      ansible.builtin.include_tasks: ./tasks/vulnbox.yml
+
+- name: Server configuration
+  hosts: server
+
+  tasks:
+    - name: Server
+      ansible.builtin.include_tasks: ./tasks/server.yml
+
+- name: Final router configuration and wireguard server start
+  hosts: router
+
+  tasks:
+    - name: Router peer
+      ansible.builtin.include_tasks: ./tasks/router_final.yml
+
+- name: Enable and start wireguard
+  hosts:
+    - vulnbox
+    - server
+
+  tasks:
+    - name: Wireguard start
+      ansible.builtin.include_tasks: ./tasks/wireguard_start.yml

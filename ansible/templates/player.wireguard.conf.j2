@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+[Interface]
+Address = {{ item.ip }}/32
+PrivateKey = {{ item.sk }}
+
+PostUp = ping -c 1 {{ wireguard.router.ip }}
+
+[Peer]
+PublicKey = {{ router_pk.content | b64decode }}
+Endpoint = {{ ansible_host }}:{{ wireguard.router.port }}
+AllowedIPs = {{ wireguard.router.subnet }}, {{ wireguard.vulnbox.subnet }}, {{ wireguard.player.subnet }}, {{ wireguard.server.subnet }}
+
+PersistentKeepalive = 5
