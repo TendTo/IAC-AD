@@ -265,6 +265,18 @@ function parse_vulnbox_keys() {
     done <<< "$2"
 }
 
+function parse_vulnbox_ips() {
+    local -n ips=$1
+    local current_key=""
+    while read -r line; do
+        if [[ $line == *',' ]]; then
+            str="${line#*\"}"
+            str="${str%\"*} "
+            ips+=($str)
+        fi
+    done <<< "$2"
+}
+
 function fun_terraform_outputs() {
     validate_provider "${provider}"
 
@@ -279,6 +291,7 @@ function fun_terraform_outputs() {
     popd
 
     parse_vulnbox_keys vulnbox_keys "${private_key_vulnbox}"
+    parse_vulnbox_ips vulnbox_ips "${vulnbox_private_ip}"
 
     pushd "${script_dir}/ansible"
     for (( j=0; j<${#vulnbox_keys[@]}; j++ )); do
@@ -287,12 +300,23 @@ function fun_terraform_outputs() {
         chmod 600 "keys/vulnbox${vulnbox_id}.pem"
     done
 
+    # TODO: remove
+    ips="${vulnbox_ips[@]}"
+    sed -ri "s/router_ip=.+/router_ip='${router_public_ip}'/g" keys/login.sh
+    sed -ri "s/server_ip=.+/server_ip='${server_private_ip}'/g" keys/login.sh
+    sed -ri "s/vulnbox_ips=.+/vulnbox_ips=(none ${ips})/g" keys/login.sh
+
     # Update the inventory file with the public ip of the router
-    sed -ri "s/(ansible_host: *)[^#\n]+(# router)/\1${router_public_ip} \2/g" inventory.yml
+    sed -ri "s/(ansible_host: *)[^#]+(# router)/\1${router_public_ip} \2/g" inventory.yml
     # sub any ipv4 address with the router public ip in the ProxyCommand line
     sed -ri "s/(ProxyCommand[^@]+@)[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(.+)/\1${router_public_ip}\2/g" inventory.yml
     # Update the inventory file with the private ip of the server
-    sed -ri "s/(ansible_host: *)[^#\n]+(# server)/\1${server_private_ip} \2/g" inventory.yml
+    sed -ri "s/(ansible_host: *)[^#]+(# server)/\1${server_private_ip} \2/g" inventory.yml
+    # Update the inventory file with the private ips of all the vuonboxes
+    for (( j=0; j<${#vulnbox_ips[@]}; j++ )); do
+        let "vulnbox_id = $j + 1"
+        sed -ri "s/(ansible_host: *)[^#]+(# vulnbox$vulnbox_id)/\1${vulnbox_ips[$j]} \2/g" inventory.yml
+    done
 
     mkdir -p "keys"
     # Create the key for the router
