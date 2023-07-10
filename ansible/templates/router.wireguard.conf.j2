@@ -21,11 +21,18 @@ PostUp = iptables -A wireguard_%i -o %i -m conntrack --ctstate RELATED,ESTABLISH
 
 # For each player, allow them to connect only to their machine
 {% for team in teams %}
+# Rule vulnbox(team{{ loop.index }}) -> player(team{{ loop.index }})
 PostUp = iptables -A wireguard_%i -s {{ wireguard.vulnbox.ip_format | format(loop.index) }}/{{ (wireguard.vulnbox.subnet | regex_replace('[^/]+/(\d+)', '\\1') | int) + wireguard.vulnbox.team_mask_offset }} -i %i -d {{ wireguard.player.ip_format | format(loop.index, 0) }}/{{ (wireguard.player.subnet | regex_replace('[^/]+/(\d+)', '\\1') | int) + wireguard.player.team_mask_offset }} -j ACCEPT
+# Rule player(team{{ loop.index }}) -> vulnbox(team{{ loop.index }})
 PostUp = iptables -A wireguard_%i -s {{ wireguard.player.ip_format | format(loop.index, 0) }}/{{ (wireguard.player.subnet | regex_replace('[^/]+/(\d+)', '\\1') | int) + wireguard.player.team_mask_offset }} -i %i -d {{ wireguard.vulnbox.ip_format | format(loop.index) }}/{{ (wireguard.vulnbox.subnet | regex_replace('[^/]+/(\d+)', '\\1') | int) + wireguard.vulnbox.team_mask_offset }} -j ACCEPT
+# Rule player(team{{ loop.index }}) -> player(team{{ loop.index }})
+PostUp = iptables -A wireguard_%i -s {{ wireguard.player.ip_format | format(loop.index, 0) }}/{{ (wireguard.player.subnet | regex_replace('[^/]+/(\d+)', '\\1') | int) + wireguard.player.team_mask_offset }} -i %i -d {{ wireguard.player.ip_format | format(loop.index, 0) }}/{{ (wireguard.player.subnet | regex_replace('[^/]+/(\d+)', '\\1') | int) + wireguard.player.team_mask_offset }} -j ACCEPT
 {% endfor %}
 
-#TODO: Add rules players/vulnbox -> server and vice versa (?)
+# Rules players/vulnbox -> server
+PostUp = iptables -A wireguard_%i -i %i -d {{ wireguard.server.subnet }} -j ACCEPT
+# Rule server -> vulnbox
+PostUp = iptables -A wireguard_%i -s {{ wireguard.server.subnet }} -i %i -d {{ wireguard.vulnbox.subnet }} -j ACCEPT
 
 PostUp = iptables -A wireguard_%i -i %i -j DROP
 PostUp = iptables -A wireguard_%i -j RETURN

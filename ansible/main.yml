@@ -1,52 +1,46 @@
 ---
-# - name: Localhos
-#   hosts: localhost
-
-#   tasks:
-#     - name: Test
-#       ansible.builtin.include_tasks: ./tasks/test_.yml
-
 - name: Common configuration
   hosts: all
 
   tasks:
-    - name: Common configuration
+    - name: Installs common packages
       ansible.builtin.include_tasks: ./tasks/common.yml
 
 - name: Docker configuration
   hosts:
     - vulnbox
     - server
+
   tasks:
-    - name: Docker configuration
+    - name: Ensures docker is installed and configured on all hosts that may need it
       ansible.builtin.include_tasks: ./tasks/docker.yml
 
 - name: Router configuration
   hosts: router
 
   tasks:
-    - name: Router
-      ansible.builtin.include_tasks: ./tasks/router.yml
+    - name: Configure wireguard for the router
+      ansible.builtin.include_tasks: ./tasks/router_wireguard.yml
 
-- name: Vulnbox configuration
+- name: Vulnbox wireguard configuration
   hosts: vulnbox
 
   tasks:
-    - name: Vulnbox
-      ansible.builtin.include_tasks: ./tasks/vulnbox.yml
+    - name: Configure wireguard for the vulnbox
+      ansible.builtin.include_tasks: ./tasks/vulnbox_wireguard.yml
 
 - name: Server configuration
   hosts: server
 
   tasks:
-    - name: Server
-      ansible.builtin.include_tasks: ./tasks/server.yml
+    - name: Configure wireguard for the server
+      ansible.builtin.include_tasks: ./tasks/server_wireguard.yml
 
 - name: Final router configuration and wireguard server start
   hosts: router
 
   tasks:
-    - name: Router peer
+    - name: With all the wireguard peers configured, we can now ultimate the router's configuration
       ansible.builtin.include_tasks: ./tasks/router_final.yml
 
 - name: Enable and start wireguard
@@ -55,5 +49,5 @@
     - server
 
   tasks:
-    - name: Wireguard start
+    - name: Start and enable wireguard
       ansible.builtin.include_tasks: ./tasks/wireguard_start.yml
