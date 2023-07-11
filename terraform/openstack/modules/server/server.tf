@@ -15,42 +15,40 @@ terraform {
 # Key pair
 # ===============================
 resource "openstack_compute_keypair_v2" "keypair" {
-  name = "vulnbox_key_pair_${var.team_id}"
+  name = "server_key_pair"
 }
 
 # ===============================
-# Vulnbox port to the subnet
+# Server port to the subnet
 # ===============================
-resource "openstack_networking_port_v2" "vulnbox_port" {
-  name           = "vulnbox_port_${var.team_id}"
+resource "openstack_networking_port_v2" "server_port" {
+  name           = "server_port"
   admin_state_up = true
   network_id     = var.network_id
 
   security_group_ids = [
-    var.vulnbox_secgroup_id
+    var.server_secgroup_id
   ]
 
   fixed_ip {
-    subnet_id = var.vulnbox_subnet_id
+    subnet_id = var.server_subnet_id
   }
 }
 
 # ===========================================
-# Vulnbox instance
+# Server instance
 # ===========================================
-resource "openstack_compute_instance_v2" "vulnbox" {
-  name        = "vulnbox_instance_${var.team_id}"
-  image_id    = var.vulnbox_image_id
-  flavor_name = var.vulnbox_flavor_name
+resource "openstack_compute_instance_v2" "server" {
+  name        = "server_instance"
+  image_id    = var.server_image_id
+  flavor_name = var.server_flavor_name
   key_pair    = openstack_compute_keypair_v2.keypair.name
 
   metadata = {
-    application = "vunlbox_${var.team_id}"
+    application = "server"
   }
 
-  # user_data = file("${path.module}/vulnbox_user_data.txt")
-
   network {
-    port = openstack_networking_port_v2.vulnbox_port.id
+    port = openstack_networking_port_v2.server_port.id
   }
 }

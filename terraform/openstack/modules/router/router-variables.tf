@@ -1,13 +1,12 @@
 # ===============================
 # Required variables
 # ===============================
-variable "router_wireguard_port" {
-  description = "Port to use for the wireguard server"
-  type        = number
-
+variable "public_ip" {
+  description = "Public IP address of the router"
+  type        = string
   validation {
-    condition     = var.router_wireguard_port >= 80 && var.router_wireguard_port <= 65535
-    error_message = "Ports must be between 80 and 65535"
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.public_ip))
+    error_message = "The public IP address must be a valid IPv4 address"
   }
 }
 variable "router_flavor_name" {
@@ -19,22 +18,14 @@ variable "router_image_id" {
   type        = string
 }
 variable "network_id" {
-  description = "ID of the network the subnet will be attached to"
+  description = "ID of the network"
   type        = string
 }
-variable "router_cidr" {
-  description = "CIDR of the subnet to create. Meaning the range of IP addresses that will be available for the instances in the subnet."
+variable "router_subnet_id" {
+  description = "ID of the subnet to use for the router"
   type        = string
 }
-variable "external_network_id" {
-  description = "ID of the external network to attach the router to"
+variable "router_secgroup_id" {
+  description = "ID of the security group to use for the router"
   type        = string
-}
-variable "vulnbox_cidr" {
-  description = "CIDR of the vulnbox subnet. Used by the router to attach itself to the vulnbox subnet"
-  type        = string
-}
-variable "vulnbox_count" {
-  description = "Number of vulnbox instances to create"
-  type        = number
 }

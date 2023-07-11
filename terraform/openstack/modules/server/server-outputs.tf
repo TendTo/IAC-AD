@@ -3,5 +3,5 @@ output "private_key" {
   sensitive = true
 }
 output "private_ip" {
-  value = openstack_compute_instance_v2.vulnbox.network.0.fixed_ip_v4
+  value = openstack_compute_instance_v2.server.network.0.fixed_ip_v4
 }
