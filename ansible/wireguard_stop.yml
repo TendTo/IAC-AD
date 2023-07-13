@@ -1,0 +1,16 @@
+---
+- name: Stop wireguard for both the vulnbox and the server
+  hosts:
+    - vulnbox
+    - server
+
+  tasks:
+    - name: Stop wireguard
+      ansible.builtin.include_tasks: ./tasks/wireguard_stop.yml
+
+- name: Stop wireguard for the router
+  hosts: router
+
+  tasks:
+    - name: Stop wireguard
+      ansible.builtin.include_tasks: ./tasks/wireguard_stop.yml

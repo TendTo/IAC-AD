@@ -27,3 +27,17 @@
     owner: root
     group: root
     mode: "0600"
+
+- name: Program the starting of the network after a set delay
+  become: true
+  ansible.builtin.cron:
+    name: "Start vpn network"
+    month: "{{ start_conf.month }}"
+    day: "{{ start_conf.day }}"
+    hour: "{{ start_conf.hour }}"
+    minute: "{{ start_conf.minute + 1 }}" # make sure it starts after the router
+    job: "wg-quick up wg0"
+    user: root
+    state: present
+  vars:
+    start_conf: "{{ wireguard.router.start }}"

@@ -22,12 +22,14 @@
     - name: Configure wireguard for the router
       ansible.builtin.include_tasks: ./tasks/router_wireguard.yml
 
-- name: Vulnbox wireguard configuration
+- name: Vulnbox configuration
   hosts: vulnbox
 
   tasks:
     - name: Configure wireguard for the vulnbox
       ansible.builtin.include_tasks: ./tasks/vulnbox_wireguard.yml
+    - name: Configure vulnbox services
+      ansible.builtin.include_tasks: ./tasks/vulnbox_services.yml
 
 - name: Server configuration
   hosts: server
@@ -35,6 +37,8 @@
   tasks:
     - name: Configure wireguard for the server
       ansible.builtin.include_tasks: ./tasks/server_wireguard.yml
+    - name: Configure services and checkers for the server
+      ansible.builtin.include_tasks: ./tasks/server_services.yml
 
 - name: Final router configuration and wireguard server start
   hosts: router
@@ -42,12 +46,3 @@
   tasks:
     - name: With all the wireguard peers configured, we can now ultimate the router's configuration
       ansible.builtin.include_tasks: ./tasks/router_final.yml
-
-- name: Enable and start wireguard
-  hosts:
-    - vulnbox
-    - server
-
-  tasks:
-    - name: Start and enable wireguard
-      ansible.builtin.include_tasks: ./tasks/wireguard_start.yml

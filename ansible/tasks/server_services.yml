@@ -1,0 +1,61 @@
+---
+- name: Make sure pip is installed
+  ansible.builtin.package:
+    name: python3-pip
+    state: present
+
+- name: Clone the ForcAD repository
+  ansible.builtin.git:
+    repo: https://github.com/pomo-mondreganto/ForcAD.git
+    version: "3801774eed9d2aaf96c4b2125da18446434bc3a4"
+    dest: ForcAD
+    force: true
+
+- name: Install the required dependencies with pip
+  ansible.builtin.pip:
+    requirements: requirements.txt
+    chdir: ForcAD/cli
+    state: present
+
+- name: Copy checkers to the server
+  ansible.builtin.copy:
+    src: checkers/
+    dest: ForcAD/checkers/
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: List the checkers of the server
+  ansible.builtin.find:
+    paths: ForcAD/checkers/
+    file_type: directory
+    recurse: false
+  register: checkers_files
+
+- name: ForcAD configuration
+  ansible.builtin.template:
+    src: templates/forcAD.config.yml.j2
+    dest: ForcAD/config.yml
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+    force: false
+  vars:
+    open_conf: "{{ wireguard.router.open }}"
+    checkers: "{{ checkers_files.files | map(attribute='path') | map('basename') | list }}"
+
+- name: Setup the deployment
+  become: true
+  ansible.builtin.command:
+    cmd: ./control.py setup
+    chdir: ForcAD
+    creates: config_backup*
+  changed_when: true
+
+- name: Start the deployment
+  become: true
+  ansible.builtin.command:
+    cmd: ./control.py start
+    chdir: ForcAD
+    creates: config_backup*
+  changed_when: true

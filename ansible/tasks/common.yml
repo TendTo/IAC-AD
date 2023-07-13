@@ -33,3 +33,7 @@
     group: root
     mode: "0600"
   when: ansible_user != "root"
+
+- name: Set timezone to the one provided in the settings
+  community.general.timezone:
+    name: "{{ timezone }}"

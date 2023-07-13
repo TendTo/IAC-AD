@@ -1,2 +1,32 @@
 ---
-# TODO: Add services here
+- name: Make sure the servuces path exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ vulnbox.services_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Upload the services to the services path
+  become: true
+  ansible.builtin.copy:
+    src: services/
+    dest: "{{ vulnbox.services_path }}"
+    owner: "{{ ad.vulnbox.services_owner }}"
+    group: "{{ ad.vulnbox.services_owner }}"
+    mode: '0755'
+
+- name: List all the services in the services path
+  become: true
+  ansible.builtin.find:
+    paths: "{{ vulnbox.services_path }}"
+    file_type: directory
+    recurse: false
+  register: services
+
+- name: "Run the start.sh script located in 'services/{{ item.path }}'"
+  become: true
+  ansible.builtin.command:
+    chdir: "{{ item.path }}"
+    cmd: "{{ item.path }}/start.sh"
+  loop: "{{ services.files }}"
+  changed_when: true

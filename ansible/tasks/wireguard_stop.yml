@@ -1,0 +1,7 @@
+---
+- name: Stop wireguard and disable on boot
+  become: true
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    enabled: false
+    state: stopped

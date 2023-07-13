@@ -1,0 +1,27 @@
+game:
+  mode: classic
+  round_time: {{ ad.round_time }}
+  start_time: "{{ open_conf.year }}-{{ open_conf.month }}-{{ open_conf.day }} {{ open_conf.hour }}:{{ open_conf.minute }}:00"
+  timezone: {{ ad.timezone }}
+
+  default_score: {{ ad.default_score }}
+  flag_lifetime: {{ ad.flag_lifetime }}
+  game_hardness: 10.0
+  inflation: true
+
+tasks:
+{% for checker in checkers %}
+  - checker: /checkers/{{ checker }}/checker.py
+    checker_timeout: {{ ad.round_time // 3 }}
+    checker_type: hackerdom
+    gets: 2
+    name: {{ checker }}
+    places: 5
+    puts: 2
+{% endfor %}
+
+teams:
+{% for team in teams %}
+  - ip: {{ wireguard.vulnbox.ip_format | format(loop.index) }}
+    name: {{ team.name }}
+{% endfor %}

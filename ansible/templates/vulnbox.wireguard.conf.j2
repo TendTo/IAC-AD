@@ -5,6 +5,8 @@ ListenPort = {{ wireguard.vulnbox.port }}
 
 PostUp = wg set %i private-key /etc/wireguard/privatekey
 
+PostUp = ping -c 1 {{ wireguard.router.ip }}
+
 [Peer]
 PublicKey = {{ hostvars['router']['router_pk']['content'] | b64decode }}
 Endpoint = {{ hostvars['router']['ansible_host'] }}:{{ wireguard.router.port }}
