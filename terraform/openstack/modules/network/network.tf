@@ -20,14 +20,6 @@ resource "openstack_networking_network_v2" "network" {
 }
 
 # ===============================
-# Public IP
-# ===============================
-resource "openstack_networking_floatingip_v2" "public_ip" {
-  pool        = var.floating_ip_pool
-  description = "Public IP used to access the router"
-}
-
-# ===============================
 # External router
 # ===============================
 resource "openstack_networking_router_v2" "external_router" {

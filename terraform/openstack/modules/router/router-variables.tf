@@ -1,13 +1,9 @@
 # ===============================
 # Required variables
 # ===============================
-variable "public_ip" {
-  description = "Public IP address of the router"
+variable "floating_ip_pool" {
+  description = "Name of the floating IP pool to use to get a public IP address"
   type        = string
-  validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.public_ip))
-    error_message = "The public IP address must be a valid IPv4 address"
-  }
 }
 variable "router_flavor_name" {
   description = "Name of the flavor to use for the router. It determins the instance's computing power. (m1.small, m1.medium, etc.)"

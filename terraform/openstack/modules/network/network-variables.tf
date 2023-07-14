@@ -1,10 +1,6 @@
 # ===============================
 # Required variables
 # ===============================
-variable "floating_ip_pool" {
-  description = "Name of the floating IP pool to use to get a public IP address"
-  type        = string
-}
 variable "external_network_id" {
   description = "ID of the external network to connect to, used to access the internet"
   type        = string
@@ -12,14 +8,26 @@ variable "external_network_id" {
 variable "router_subnet_cidr" {
   description = "CIDR of the subnet of the router. Meaning the range of IP addresses that will be available for the instances in the subnet."
   type        = string
+  validation {
+    condition     = can(cidrnetmask(var.router_subnet_cidr))
+    error_message = "Must be a valid ip address with mask"
+  }
 }
 variable "vulnbox_subnet_cidr" {
   description = "CIDR of the subnet of the vulnbox. Meaning the range of IP addresses that will be available for the instances in the subnet."
   type        = string
+  validation {
+    condition     = can(cidrnetmask(var.vulnbox_subnet_cidr))
+    error_message = "Must be a valid ip address with mask"
+  }
 }
 variable "server_subnet_cidr" {
   description = "CIDR of the subnet of the server. Meaning the range of IP addresses that will be available for the instances in the subnet."
   type        = string
+  validation {
+    condition     = can(cidrnetmask(var.server_subnet_cidr))
+    error_message = "Must be a valid ip address with mask"
+  }
 }
 variable "server_ports" {
   description = "List of ports the server uses and accepts connections to"

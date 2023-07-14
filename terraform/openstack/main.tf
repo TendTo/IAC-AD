@@ -24,7 +24,6 @@ provider "openstack" {
 module "network" {
   source = "./modules/network"
 
-  floating_ip_pool    = var.iac_ad_floating_ip_pool
   router_subnet_cidr  = var.iac_ad_router_subnet_cidr
   vulnbox_subnet_cidr = var.iac_ad_vulnbox_subnet_cidr
   server_subnet_cidr  = var.iac_ad_server_subnet_cidr
@@ -40,10 +39,10 @@ module "router" {
   source     = "./modules/router"
   depends_on = [module.network]
 
+  floating_ip_pool   = var.iac_ad_floating_ip_pool
   router_flavor_name = var.iac_ad_router_flavor_name
   router_image_id    = var.iac_ad_router_image_id
 
-  public_ip          = module.network.public_ip
   network_id         = module.network.network_id
   router_secgroup_id = module.network.router_secgroup_id
   router_subnet_id   = module.network.router_subnet_id
@@ -93,7 +92,7 @@ output "private_ip_vulnbox" {
   value = module.vulnbox[*].private_ip
 }
 output "public_ip_router" {
-  value = module.network.public_ip
+  value = module.router.public_ip
 }
 output "private_ip_server" {
   value = module.server.private_ip

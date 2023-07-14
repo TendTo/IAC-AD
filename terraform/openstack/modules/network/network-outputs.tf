@@ -19,6 +19,3 @@ output "router_secgroup_id" {
 output "server_secgroup_id" {
   value = openstack_networking_secgroup_v2.server_secgroup.id
 }
-output "public_ip" {
- value = openstack_networking_floatingip_v2.public_ip.address
-}

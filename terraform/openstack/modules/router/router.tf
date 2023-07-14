@@ -12,6 +12,14 @@ terraform {
 }
 
 # ===============================
+# Public IP
+# ===============================
+resource "openstack_networking_floatingip_v2" "public_ip" {
+  pool        = var.floating_ip_pool
+  description = "Public IP used to access the router"
+}
+
+# ===============================
 # Key pair
 # ===============================
 resource "openstack_compute_keypair_v2" "keypair" {
@@ -22,7 +30,7 @@ resource "openstack_compute_keypair_v2" "keypair" {
 # Add public ip to router
 # ===============================
 resource "openstack_compute_floatingip_associate_v2" "public_ip_association" {
-  floating_ip = var.public_ip
+  floating_ip = openstack_networking_floatingip_v2.public_ip.address
   instance_id = openstack_compute_instance_v2.router.id
   fixed_ip    = openstack_compute_instance_v2.router.network.0.fixed_ip_v4
 }
