@@ -8,7 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import NoReturn, Any
+    from typing import NoReturn
 
     class CheckerArgs(argparse.Namespace):
         action: str
@@ -16,9 +16,6 @@ if TYPE_CHECKING:
         flagId: str
         flag: str
         vuln_number: int
-
-
-TOKEN = os.getenv("TOKEN", "6d46276c259b7fa846b6d2ed6d575e61")
 
 
 class Status(Enum):
@@ -55,8 +52,9 @@ class BaseChecker(ABC):
     def __init__(self, args: "dict | None" = None):
         try:
             self.args = self.parse_args(args)
+            self.action = self.args.action
             self.team_ip = self.args.teamIp
-            if self.args.action != Action.CHECK.value:
+            if self.action != Action.CHECK.value:
                 self.flag_id = self.args.flagId
                 self.flag = self.args.flag
                 self.vuln_number = self.args.vuln_number
@@ -65,11 +63,11 @@ class BaseChecker(ABC):
 
     def run(self):
         try:
-            if self.args.action == Action.CHECK.value:
+            if self.action == Action.CHECK.value:
                 self.check()
-            elif self.args.action == Action.PUT.value:
+            elif self.action == Action.PUT.value:
                 self.put()
-            elif self.args.action == Action.GET.value:
+            elif self.action == Action.GET.value:
                 self.get()
             else:
                 self.quit(Status.ERROR, "Unknown action")
@@ -113,7 +111,7 @@ class BaseChecker(ABC):
         pass
 
     @abstractmethod
-    def put(self) -> "None | Any | NoReturn":
+    def put(self) -> "None | NoReturn":
         pass
 
     @abstractmethod
