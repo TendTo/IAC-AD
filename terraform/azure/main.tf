@@ -112,6 +112,9 @@ output "private_ip_vulnbox" {
 output "public_ip_router" {
   value = module.router.public_ip
 }
+output "private_ip_router" {
+  value = module.router.private_ip
+}
 output "private_ip_server" {
   value = module.server.private_ip
 }

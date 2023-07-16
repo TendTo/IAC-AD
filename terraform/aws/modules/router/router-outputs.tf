@@ -5,3 +5,6 @@ output "private_key" {
 output "public_ip" {
   value = aws_instance.router.public_ip
 }
+output "private_ip" {
+  value = aws_instance.router.private_ip
+}
