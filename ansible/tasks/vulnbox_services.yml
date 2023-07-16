@@ -1,8 +1,8 @@
 ---
-- name: Make sure the servuces path exists
+- name: Make sure the services path exists
   become: true
   ansible.builtin.file:
-    path: "{{ vulnbox.services_path }}"
+    path: "{{ ad.vulnbox.services_path }}"
     state: directory
     mode: "0755"
 
@@ -10,7 +10,7 @@
   become: true
   ansible.builtin.copy:
     src: services/
-    dest: "{{ vulnbox.services_path }}"
+    dest: "{{ ad.vulnbox.services_path }}"
     owner: "{{ ad.vulnbox.services_owner }}"
     group: "{{ ad.vulnbox.services_owner }}"
     mode: '0755'
@@ -18,7 +18,7 @@
 - name: List all the services in the services path
   become: true
   ansible.builtin.find:
-    paths: "{{ vulnbox.services_path }}"
+    paths: "{{ ad.vulnbox.services_path }}"
     file_type: directory
     recurse: false
   register: services

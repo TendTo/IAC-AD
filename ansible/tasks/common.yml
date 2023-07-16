@@ -35,5 +35,6 @@
   when: ansible_user != "root"
 
 - name: Set timezone to the one provided in the settings
+  become: true
   community.general.timezone:
-    name: "{{ timezone }}"
+    name: "{{ ad.timezone }}"

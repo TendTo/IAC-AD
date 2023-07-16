@@ -1,5 +1,6 @@
 ---
 - name: Make sure pip is installed
+  become: true
   ansible.builtin.package:
     name: python3-pip
     state: present
@@ -12,6 +13,7 @@
     force: true
 
 - name: Install the required dependencies with pip
+  become: true
   ansible.builtin.pip:
     requirements: requirements.txt
     chdir: ForcAD/cli
@@ -22,7 +24,6 @@
     src: checkers/
     dest: ForcAD/checkers/
     owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
     mode: "0755"
 
 - name: List the checkers of the server
@@ -45,7 +46,6 @@
     checkers: "{{ checkers_files.files | map(attribute='path') | map('basename') | list }}"
 
 - name: Setup the deployment
-  become: true
   ansible.builtin.command:
     cmd: ./control.py setup
     chdir: ForcAD
@@ -53,9 +53,7 @@
   changed_when: true
 
 - name: Start the deployment
-  become: true
   ansible.builtin.command:
     cmd: ./control.py start
     chdir: ForcAD
-    creates: config_backup*
   changed_when: true
