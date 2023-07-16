@@ -98,7 +98,7 @@ class BaseChecker(ABC):
             Action.GET.value, help="get the provided flag from the service"
         )
         get_parser.add_argument("teamIp", type=str, help="ip address of the team")
-        get_parser.add_argument("flagId", ype=str, help="flag id")
+        get_parser.add_argument("flagId", type=str, help="flag id")
         get_parser.add_argument("flag", type=str, help="flag")
         get_parser.add_argument(
             "vuln_number", type=int, help="identifier for the vulnerability"
