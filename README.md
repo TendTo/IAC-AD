@@ -130,125 +130,22 @@ The _run.py_ script requires Python3, but is more portable and has more features
 
 For a more in depth explanation of the commands, run the script with the _-h_ flag.
 
-````shell
+```shell
 # Show the help
 ./run.py -h
+```
 
 ```shell
 # Run all the commands in sequence to create the infrastructure
 ./run.py all -p <provider>
-````
-
-#### Singular commands
-
-```shell
-# Create the infrastructure
-./run.py terraform init -p <provider>
 ```
 
-```shell
-# Create the infrastructure
-./run.py terraform apply -p <provider>
-```
+## Additional information
 
-```shell
-# Destroy the infrastructure
-./run.py terraform destroy -p <provider>
-```
-
-```shell
-# Using the outputs from Terraform to configure
-# hosts and private keys
-./run.py terraform out -p <provider>
-```
-
-```shell
-# Adds all the remote hosts to the known hosts
-./run.py connect fingerprint
-```
-
-```shell
-# Starts the setup process on all the hosts
-./run.py ansible playbook
-```
-
-```shell
-# Bootstraps wireguard on all the hosts
-./run.py ansible up
-```
-
-```shell
-# Shuts down wireguard on all the hosts
-./run.py ansible down
-```
-
-### Manual setup
-
-Although the _run.sh_ script is the recommended way to use this project, it is possible to use Terraform and Ansible manually.
-Make sure the working directory is the correct one before running the commands.
-
-#### Terraform
-
-Folder _terraform/\<provider\>_.
-
-```shell
-# Initialize Terraform, download the providers and modules
-terraform init
-```
-
-```shell
-# Create the infrastructure
-terraform apply
-```
-
-```shell
-# Destroy the infrastructure
-terraform destroy
-```
-
-#### Ansible
-
-Folder _ansible_.
-
-```shell
-# Setup all the hosts
-ansible-playbook -i inventory.yml main.yml
-```
-
-```shell
-# Force start wireguard on all the hosts
-ansible-playbook -i inventory.yml wireguard_up.yml
-```
-
-## Extra
-
-### Autocomplete
-
-The _run.py_ script supports autocomplete for Bash.
-The autocomplete script is in the _util_ folder.
-To enable it, copy it to _/etc/bash_completion.d/_.
-
-```shell
-# Copy the autocomplete script
-sudo cp util/autocomplete.sh /etc/bash_completion.d/terraform-ansible
-```
-
-```shell
-# You may need to source the autocomplete script
-echo "source /etc/bash_completion.d/terraform-ansible" >> ~/.bashrc
-```
-
-### Connect with wireguard
-
-After running the ansible main playbook, all the configuration files for wireguard will be in the _ansible/teams_ folder.
-It is possible to use those to connect to the VPN.
-
-```shell
-# Copy the configuration file to the wireguard folder
-sudo cp ansible/teams/<team_name>-<i>.conf /etc/wireguard/wg0.conf
-# Connect to the VPN
-sudo wg-quick up wg0
-```
+- [Terraform](./docs/Terraform.md)
+- [Ansible](./docs/Ansible.md)
+- [Usage](./docs/Usage.md)
+- [Extra](./docs/Extra.md)
 
 ## Credits
 

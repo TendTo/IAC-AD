@@ -1,0 +1,53 @@
+@startuml network
+title Team networks
+
+!include <office/Servers/application_server>
+!include <office/Servers/database_server>
+!include <office/Devices/router>
+!include <office/Devices/device_laptop>
+
+' Center the text
+skinparam defaultFontSize 12
+
+nwdiag {
+    router [address = "10.0.0.1", description = "<$router>\n Router"];
+    group Team1 {
+        player1_1;
+        player1_2;
+        vulnbox1;
+    }
+    group Team2 {
+        player2_1;
+        player2_2;
+        player2_3;
+        vulnbox2;
+    }
+    group Team3 {
+        player3_1;
+        vulnbox3;
+    }
+    network Server {
+        address = "10.10.0.0/24"
+        scoreboard [address = "10.10.0.1", description = "<$application_server>\nScoreboard\nFlag submission\nChecker"];
+        router;
+    }
+    network Vulnboxes {
+        address = "10.60.0.0/16"
+        vulnbox1 [address = "10.60.1.1", description = "<$device_laptop>\nVulnbox 1"];
+        vulnbox2 [address = "10.60.2.1", description = "<$device_laptop>\nVulnbox 2"];
+        vulnbox3 [address = "10.60.3.1", description = "<$device_laptop>\nVulnbox 3"];
+        router;
+    }
+    network Players {
+        address = "10.80.0.0/16"
+        player1_1 [address = "10.80.1.1", description = "<$device_laptop>\nTeam 1\nPlayer 1"];
+        player1_2 [address = "10.80.1.2", description = "<$device_laptop>\nTeam 1\nPlayer 2"];
+        player2_1 [address = "10.80.2.1", description = "<$device_laptop>\nTeam 2\nPlayer 1"];
+        player2_2 [address = "10.80.2.2", description = "<$device_laptop>\nTeam 2\nPlayer 2"];
+        player2_3 [address = "10.80.2.3", description = "<$device_laptop>\nTeam 2\nPlayer 3"];
+        player3_1 [address = "10.80.3.1", description = "<$device_laptop>\nTeam 3\nPlayer 1"];
+        router;
+    }
+}
+
+@enduml
