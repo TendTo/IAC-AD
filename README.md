@@ -1,5 +1,8 @@
 # Infrastructure As Code - Attack/Defense
 
+[![Terraform CI](https://github.com/TendTo/IAC-AD/actions/workflows/terraform.yml/badge.svg)](https://github.com/TendTo/IAC-AD/actions/workflows/terraform.yml)
+[![Ansible CI](https://github.com/TendTo/IAC-AD/actions/workflows/ansible.yml/badge.svg)](https://github.com/TendTo/IAC-AD/actions/workflows/ansible.yml)
+
 ## Introduction
 
 This repository contains the code for the Infrastructure As Code - Attack/Defense project.
