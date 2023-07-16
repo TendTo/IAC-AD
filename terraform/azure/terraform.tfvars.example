@@ -1,0 +1,27 @@
+iac_ad_az_location            = "West Europe"
+iac_ad_az_resource_group_name = "iac-ad"
+iac_ad_az_tenant_id           = "baeefbc8-3c8b-4382-9126-e86bfef46ce6"
+iac_ad_az_subscription_id     = "9841fa4f-f503-4459-9683-23096d339c2c"
+iac_ad_vulnbox_image = {
+  publisher = "Canonical"
+  offer     = "0001-com-ubuntu-server-jammy"
+  sku       = "22_04-lts-gen2"
+  version   = "latest"
+}
+iac_ad_vulnbox_size = "Standard_B1s"
+iac_ad_router_image = {
+  publisher = "Canonical"
+  offer     = "0001-com-ubuntu-server-jammy"
+  sku       = "22_04-lts-gen2"
+  version   = "latest"
+}
+iac_ad_router_size = "Standard_B1s"
+iac_ad_server_image = {
+  publisher = "Canonical"
+  offer     = "0001-com-ubuntu-server-jammy"
+  sku       = "22_04-lts-gen2"
+  version   = "latest"
+}
+iac_ad_server_size   = "Standard_D2s_v3"
+iac_ad_vulnbox_count = 2
+iac_ad_server_ports  = [22, 80, 443]
