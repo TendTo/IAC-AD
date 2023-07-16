@@ -3,29 +3,51 @@
 # HEADER
 #================================================================
 #% SYNOPSIS
-#+    ${SCRIPT_NAME} [OPTIONS] action [additional arguments]
+#+    ${SCRIPT_NAME} [OPTIONS] command action [additional arguments]
 #%
 #% DESCRIPTION
 #%    Handles all the steps to setup the infrastructure.
 #%
 #% ARGUMENTS
-#%    action                        The action to perform. Valid options are: [apply, destroy, output, setup]
-#%    [additional arguments]        Additional arguments to pass to the invoked action
+#%   command                      The command to perform. It requires to specify an action. Valid options are: [terraform, ansible, connect]
+#%   action                       The action to perform. Depends on the command specified.
+#%   [additional arguments]       Additional arguments to pass to the invoked action
 #%
 #% OPTIONS
+#%   -h, --help                   Help section
+#%   -v, --version                Script information
+#%   -y, --yes                    Automatically answer yes to any questions. Use with caution!
+#%   -n, --no-color               Disable color output
+#%   -i --inventory <FILE>        Inventory file where to store the terraform outputs or where to get the information from. Defaults to inventory.yml
+#%   --router_key <FILE>          Path to the private key to use to connect to the router instance. Defaults to router.pem
+#%   --server_key <FILE>          Path to the private key to use to connect to the server instance. Defaults to server.pem
 #%
-#%  GENERAL
-#%    -h, --help                    Help section
-#%    -v, --version                 Script information
-#%    -y, --yes                     Automatically answer yes to any questions. Use with caution!
-#%    -n, --no-color                Disble color output
+#% terraform
+#%   ACTIONS:
+#%     init                       Initialise the Terraform working directory
+#%     apply                      Apply the changes required to reach the desired state of the configuration
+#%     destroy                    Destroy the Terraform-managed infrastructure
+#%     out                        Gather the terraform outputs and saves them in the ansible inventory files, to be used later
+#%   OPTIONS:
+#%     -p  --provider <PROVIDER>  The provider to use. Valid options are: [aws, azure, openstack].
 #%
-#%  TERRAFORM
-#%    -p  --provider <PROVIDER>     The provider to use. Valid options are: [aws].
+#% connect
+#%   ACTIONS:
+#%     router                     Connect to the router instance via SSH. Requires the outputs to be gathered first
+#%     server                     Connect to the server instance via SSH. Requires the outputs to be gathered first
+#%     1-n                        Connect to the n-th vulnbox instance via SSH. Requires the outputs to be gathered first
+#%     fingerprint                Stores the fingerprint of all remote instances in the known_hosts file. Requires the outputs to be gathered first
+#%   OPTIONS:
+#%     -p  --provider <PROVIDER>  The provider to use. Valid options are: [aws, azure, openstack].
 #%
-#%  ANSIBLE
-#%    --ask-vault-pass              Ansible will ask for a password to decrypt the vault with
-#%    --vault-password-file <FILE>  Ansible will use the provided file to decrypt the vault with
+#% ansible
+#%   ACTIONS:
+#%     playbook                   Run the playbook on the remote instances. Requires the outputs to be gathered first
+#%     start                      Start wireguard on the remote instances. Requires the outputs to be gathered first
+#%     stop                       Stop wireguard on the remote instances. Requires the outputs to be gathered first
+#%   OPTIONS:
+#%     --ask-vault-pass              Ansible will ask for a password to decrypt the vault with
+#%     --vault-password-file <FILE>  Ansible will use the provided file to decrypt the vault with
 #%
 #% EXAMPLES
 #%    ${SCRIPT_NAME} apply
@@ -134,21 +156,21 @@ function color_init() {
 # DESC: Parameter parser
 # ARGS: $@ (optional): Arguments provided to the script
 # OUTS: Variables indicating command-line parameters and options
-function parse_args
-{
+function parse_args() {
     # Local variable
     local param
     # Positional args
     local args=()
 
     # Named args
-    yes=0
-    ask_vault_pass=""
-    vault_pass_file=""
-    provider=""
-    terraform_yes=""
-    router_key="router.pem"
-    server_key="server.pem"
+    yes=''
+    ask_vault_pass=''
+    vault_pass_file=''
+    provider=''
+    terraform_yes=''
+    router_key='router.pem'
+    server_key='server.pem'
+    inventory_file='inventory.yml'
 
     # nNmed args
     while [ $# -gt 0 ]; do
@@ -174,6 +196,18 @@ function parse_args
                 provider="$1"
                 shift
             ;;
+            -i | --inventory )
+                inventory_file="$1"
+                shift
+            ;;
+            --router-key )
+                router_key="$1"
+                shift
+            ;;
+            --server-key )
+                server_key="$1"
+                shift
+            ;;
             --ask-vault-pass )
                 ask_vault_pass="--ask-vault-pass"
             ;;
@@ -182,7 +216,7 @@ function parse_args
                 shift
             ;;
             -y | --yes)
-                yes=1
+                yes='1'
                 terraform_yes="-auto-approve"
             ;;
             * )
@@ -195,14 +229,22 @@ function parse_args
     set -- "${args[@]}"
 
     # set positionals to vars
-    action="${args[0]}"
-    additional_args="${args[@]:1}"
+    command="${args[0]}"
+    action="${args[1]}"
+    additional_args="${args[@]:2}"
+}
 
-    # Validate required args
-    if [[ -z "${action}" ]]; then
-        >&2 echo "ERROR: Missing action"
-        usage
-        exit 1
+# DESC: Verify the user wants to continue asking (y/n)
+# ARGS: $1: Message to display
+function confirm() {
+    local message="$1"
+    if [[ -z "${yes}" ]]; then
+        read -p "${message}${ta_bold}Continue?${ta_none} ${ta_uscore}[y/N]${ta_none} " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            >&2 echo "Operation aborted by user"
+            exit 1
+        fi
     fi
 }
 
@@ -221,25 +263,6 @@ function validate_provider() {
         usage
         exit 1
     fi
-    if ! [[ "${provider}" =~ ^(aws|azure|gcp)$ ]]; then
-        >&2 echo "ERROR: Invalid provider '${provider}'"
-        usage
-        exit 1
-    fi
-}
-
-# DESC: Verify the user wants to continue asking (y/n)
-# ARGS: $1: Message to display
-function confirm() {
-    local message="$1"
-    if [[ -z "${yes}" ]]; then
-        read -p "${message}${ta_bold}Continue?${ta_none} ${ta_uscore}[y/N]${ta_none} " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            >&2 echo "Operation aborted by user"
-            exit 1
-        fi
-    fi
 }
 
 # DESC: Parse multiple keys from the terraform output
@@ -250,21 +273,23 @@ function parse_vulnbox_keys() {
     local -n keys=$1
     local current_key=""
     while read -r line; do
-        if [[ $line == *"-----BEGIN OPENSSH PRIVATE KEY-----"* ]]; then
-            current_key="-----BEGIN OPENSSH PRIVATE KEY-----
-"
-        elif [[ $line == *"-----END OPENSSH PRIVATE KEY-----"* ]]; then
-            current_key+="-----END OPENSSH PRIVATE KEY-----"
+        if [[ $line == *"-----BEGIN"* ]]; then
+            current_key=$line$'\n'
+        elif [[ $line == *"-----END"* ]]; then
+            current_key+=$line
             if [[ $current_key != "" ]]; then
                 keys+=("$current_key")
             fi
         else
-            current_key+="$line
-"
+            current_key+=$line$'\n'
         fi
     done <<< "$2"
 }
 
+# DESC: Parse multiple IPs from the terraform output
+# ARGS: $1 array to popolate with each ip
+#       $2 list of ips generated by the terraform output
+# OUT:  Array of vulnbox ips as the first parameter
 function parse_vulnbox_ips() {
     local -n ips=$1
     local current_key=""
@@ -277,45 +302,60 @@ function parse_vulnbox_ips() {
     done <<< "$2"
 }
 
-function fun_terraform_outputs() {
-    validate_provider "${provider}"
-
+# DESC: Create the infrastructure using Terraform
+function fun_terraform_init() {
     pushd "${script_dir}/terraform/${provider}"
-    private_key_router=$(terraform output -raw private_key_router)
-    private_key_vulnbox=$(terraform output private_key_vulnbox)
-    private_key_server=$(terraform output -raw private_key_server)
+    echo "Start terraform init"
+    terraform init $additional_args $terraform_yes
+    popd
+}
 
-    router_public_ip=$(terraform output -raw public_ip_router)
-    vulnbox_private_ip=$(terraform output private_ip_vulnbox)
-    server_private_ip=$(terraform output -raw private_ip_server)
+# DESC: Create the infrastructure using Terraform
+function fun_terraform_apply() {
+    pushd "${script_dir}/terraform/${provider}"
+    echo "Start terraform apply"
+    terraform apply $additional_args $terraform_yes
+    popd
+}
+
+# DESC: Destroy all the infrastructure created by terraform
+function fun_terraform_destroy() {
+    pushd "${script_dir}/terraform/${provider}"
+    echo "Start terraform destroy"
+    terraform destroy $additional_args $terraform_yes
+    popd
+}
+
+# DESC: Gather the outputs from terraform and prepare the ansible inventory
+function fun_terraform_out() {
+    pushd "${script_dir}/terraform/${provider}"
+    local private_key_router=$(terraform output -raw private_key_router)
+    local private_key_vulnbox=$(terraform output private_key_vulnbox)
+    local private_key_server=$(terraform output -raw private_key_server)
+
+    local router_public_ip=$(terraform output -raw public_ip_router)
+    local vulnbox_private_ip=$(terraform output private_ip_vulnbox)
+    local server_private_ip=$(terraform output -raw private_ip_server)
+    local router_private_ip=$(terraform output -raw private_ip_router)
     popd
 
     parse_vulnbox_keys vulnbox_keys "${private_key_vulnbox}"
     parse_vulnbox_ips vulnbox_ips "${vulnbox_private_ip}"
 
     pushd "${script_dir}/ansible"
-    for (( j=0; j<${#vulnbox_keys[@]}; j++ )); do
-        let "vulnbox_id = $j + 1"
-        echo "${vulnbox_keys[$j]}" > "keys/vulnbox${vulnbox_id}.pem"
-        chmod 600 "keys/vulnbox${vulnbox_id}.pem"
-    done
-
-    # TODO: remove
-    ips="${vulnbox_ips[@]}"
-    sed -ri "s/router_ip=.+/router_ip='${router_public_ip}'/g" keys/login.sh
-    sed -ri "s/server_ip=.+/server_ip='${server_private_ip}'/g" keys/login.sh
-    sed -ri "s/vulnbox_ips=.+/vulnbox_ips=(none ${ips})/g" keys/login.sh
 
     # Update the inventory file with the public ip of the router
-    sed -ri "s/(ansible_host: *)[^#]+(# router)/\1${router_public_ip} \2/g" inventory.yml
-    # sub any ipv4 address with the router public ip in the ProxyCommand line
-    sed -ri "s/(ProxyCommand[^@]+@)[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(.+)/\1${router_public_ip}\2/g" inventory.yml
+    sed -ri "s/(ansible_host:)[^#]*(# router)/\1 ${router_public_ip} \2/g" ${inventory_file}
+    # Update any ipv4 address with the router public ip in the ProxyCommand line
+    sed -ri "s/(ProxyCommand[^@]+@)[^ \"']*(.+)/\1${router_public_ip}\2/g" ${inventory_file}
+    # Update the inventory file with the private ip of the router
+    sed -ri "s/(private_ip:)[^#]*/\1 ${router_private_ip}/g" ${inventory_file}
     # Update the inventory file with the private ip of the server
-    sed -ri "s/(ansible_host: *)[^#]+(# server)/\1${server_private_ip} \2/g" inventory.yml
+    sed -ri "s/(ansible_host:)[^#]*(# server)/\1 ${server_private_ip} \2/g" ${inventory_file}
     # Update the inventory file with the private ips of all the vuonboxes
     for (( j=0; j<${#vulnbox_ips[@]}; j++ )); do
         let "vulnbox_id = $j + 1"
-        sed -ri "s/(ansible_host: *)[^#]+(# vulnbox$vulnbox_id)/\1${vulnbox_ips[$j]} \2/g" inventory.yml
+        sed -ri "s/(ansible_host:)[^#]*(# vulnbox$vulnbox_id)/\1 ${vulnbox_ips[$j]} \2/g" ${inventory_file}
     done
 
     mkdir -p "keys"
@@ -325,43 +365,160 @@ function fun_terraform_outputs() {
     # Create the key for the server
     echo "${private_key_server}" > "keys/${server_key}"
     chmod 600 "keys/${server_key}"
+    # Create the key for each vulnbox
+    for (( j=0; j<${#vulnbox_keys[@]}; j++ )); do
+        let "vulnbox_id = $j + 1"
+        echo "${vulnbox_keys[$j]}" > "keys/vulnbox${vulnbox_id}.pem"
+        chmod 600 "keys/vulnbox${vulnbox_id}.pem"
+    done
+
     popd
 }
 
-# DESC: Create the infrastructure using Terraform
-function fun_terraform_apply() {
-    validate_provider "${provider}"
-
-    pushd "${script_dir}/terraform/${provider}"
-    echo "Start terraform apply"
-    terraform apply $additional_args $terraform_yes
-    popd
-}
-
-# DESC: Destroy all the infrastructure created by terraform
-function fun_terraform_destroy() {
-    validate_provider "${provider}"
-
-    pushd "${script_dir}/terraform/${provider}"
-    echo "Start terraform destroy"
-    terraform destroy $additional_args $terraform_yes
-    popd
-}
-
-# DESC: Use Ansible to install and configure wireguard on the server
-function fun_ansible() {
+# DESC: Use Ansible to setup all the remote machines
+function fun_ansible_playbook() {
     confirm "Start wireguard installation. "
     pushd "${script_dir}/ansible"
-    ansible-playbook main.yml -i inventory.yml ${ask_vault_pass} ${vault_pass_file} $additional_args 
+    ansible-playbook main.yml -i ${inventory_file} ${ask_vault_pass} ${vault_pass_file} $additional_args 
     popd
 }
 
 # DESC: Use Ansible to start wireguard
-function fun_wireguard() {
-    confirm "Start wireguard installation. "
+function fun_ansible_up() {
+    confirm "Start wireguard. "
     pushd "${script_dir}/ansible"
-    ansible-playbook wireguard_start.yml -i inventory.yml ${ask_vault_pass} ${vault_pass_file} $additional_args 
+    ansible-playbook wireguard_start.yml -i ${inventory_file} ${ask_vault_pass} ${vault_pass_file} $additional_args 
     popd
+}
+
+# DESC: Use Ansible to stop wireguard
+function fun_ansible_down() {
+    confirm "Stop wireguard. "
+    pushd "${script_dir}/ansible"
+    ansible-playbook wireguard_stop.yml -i ${inventory_file} ${ask_vault_pass} ${vault_pass_file} $additional_args 
+    popd
+}
+
+# DESC: Connect to the router via ssh
+function fun_connect_router() {
+    pushd "${script_dir}/ansible"
+    local router_ip=$(grep -oP '(?<=ansible_host: ) *[^# ]+(?= *# router)' ${inventory_file} | xargs)
+    ssh -i "keys/${router_key}" ubuntu@$router_ip
+    popd
+}
+
+# DESC: Connect to the server via ssh
+function fun_connect_server() {
+    pushd "${script_dir}/ansible"
+    local server_ip=$(grep -oP '(?<=ansible_host: ) *[^# ]+(?= *# server)' ${inventory_file} | xargs)
+    local router_ip=$(grep -oP '(?<=ansible_host: ) *[^# ]+(?= *# router)' ${inventory_file} | xargs)
+    ssh -i "keys/${server_key}" -o ProxyCommand="ssh -i keys/${router_key} -W %h:%p ubuntu@$router_ip" ubuntu@$server_ip
+    popd
+}
+
+# DESC: Connect to the i-th vulnbox via ssh
+function fun_connect_vulnbox() {
+    pushd "${script_dir}/ansible"
+    local vulnbox_ip=$(grep -oP "(?<=ansible_host: ) *[^# ]+(?= *# vulnbox${action})" ${inventory_file} | xargs)
+    local router_ip=$(grep -oP '(?<=ansible_host: ) *[^# ]+(?= *# router)' ${inventory_file} | xargs)
+    ssh -i "keys/vulnbox${action}.pem" -o ProxyCommand="ssh -i keys/${router_key} -W %h:%p ubuntu@$router_ip" ubuntu@$vulnbox_ip
+    popd
+}
+
+# DESC: Add the fingerprints of the remote machines to the known_hosts file
+function fun_connect_fingerprint() {
+    pushd "${script_dir}/ansible"
+    local server_ip=$(grep -oP '(?<=ansible_host: ) *[^# ]+(?= *# server)' ${inventory_file} | xargs)
+    local router_ip=$(grep -oP '(?<=ansible_host: ) *[^# ]+(?= *# router)' ${inventory_file} | xargs)
+    local vulnbox_ips=$(grep -oP "(?<=ansible_host: ) *[^# ]+(?= *# vulnbox)" ${inventory_file} | xargs)
+    # Get the fingerprint of the router
+    ssh-keyscan $router_ip >> ~/.ssh/known_hosts
+    # Use the bastion host to get the fingerprint of the server and the vulnboxes
+    ssh -i "keys/${router_key}" ubuntu@$router_ip "ssh-keyscan -t rsa $server_ip $vulnbox_ips" >> ~/.ssh/known_hosts
+    popd
+}
+
+# DESC: terraform sub command
+function sub_command_terraform() {
+    validate_provider "${provider}"
+
+    case "${action}" in
+        init )
+            fun_terraform_init
+        ;;
+        apply )
+            fun_terraform_apply
+        ;;
+        destroy )
+            fun_terraform_destroy
+        ;;
+        out )
+            fun_terraform_out
+        ;;
+        * )
+            if [[ -z "${action}" ]]; then
+                >&2 echo "ERROR: Missing sub-command for terraform"
+            else
+                >&2 echo "ERROR: Invalid sub-command '${action}' for terraform"
+            fi
+            usage
+            exit 1
+    esac
+}
+
+# DESC: connect sub command
+function sub_command_connect() {
+    case "${action}" in
+        router )
+            fun_connect_router
+        ;;
+        server )
+            fun_connect_server
+        ;;
+        fingerprint )
+            fun_connect_fingerprint
+        ;;
+        [0-9] )
+            fun_connect_vulnbox
+        ;;
+        [0-9][0-9] )
+            fun_connect_vulnbox
+        ;;
+        [0-9][0-9][0-9] )
+            fun_connect_vulnbox
+        ;;
+        * )
+            if [[ -z "${action}" ]]; then
+                >&2 echo "ERROR: Missing sub-command for connect"
+            else
+                >&2 echo "ERROR: Invalid sub-command '${action}' for connect"
+            fi
+            usage
+            exit 1
+    esac
+}
+
+# DESC: ansible sub command
+function sub_command_ansible() {
+    case "${action}" in
+        playbook )
+            fun_ansible_playbook
+        ;;
+        up )
+            fun_ansible_up
+        ;;
+        down )
+            fun_ansible_down
+        ;;
+        * )
+            if [[ -z "${action}" ]]; then
+                >&2 echo "ERROR: Missing sub-command for ansible"
+            else
+                >&2 echo "ERROR: Invalid sub-command '${action}' for ansible"
+            fi
+            usage
+            exit 1
+    esac
 }
 
 # DESC: Main control flow
@@ -374,24 +531,22 @@ function main() {
         color_init
     fi
 
-    case "${action}" in
-        apply )
-            fun_terraform_apply
+    case "${command}" in
+        terraform )
+            sub_command_terraform
         ;;
-        destroy )
-            fun_terraform_destroy
+        connect )
+            sub_command_connect
         ;;
-        outputs )
-            fun_terraform_outputs
-        ;;
-        setup )
-            fun_ansible
-        ;;
-        wireguard )
-            fun_wireguard
+        ansible )
+            sub_command_ansible
         ;;
         * )
-            >&2 echo "ERROR: Invalid action '${action}'"
+            if [[ -z "${command}" ]]; then
+                >&2 echo "ERROR: Missing command"
+            else
+                >&2 echo "ERROR: Invalid command '${command}'"
+            fi
             usage
             exit 1
     esac
