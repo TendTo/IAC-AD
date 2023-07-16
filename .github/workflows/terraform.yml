@@ -1,0 +1,53 @@
+name: Terraform CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "terraform/**"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.3
+
+      - name: Tun terraform format check for all providers
+        run: |
+          for dir in terraform/*; do
+          if [ -d "$dir" ]; then
+              pushd "$dir"
+              terraform fmt -check
+              popd
+          fi
+          done
+
+      - name: Init terraform for all providers
+        run: |
+          for dir in terraform/*; do
+          if [ -d "$dir" ]; then
+              pushd "$dir"
+              terraform init
+              popd
+          fi
+          done
+
+      - name: Validate terraform for all providers
+        run: |
+          for dir in terraform/*; do
+          if [ -d "$dir" ]; then
+              pushd "$dir"
+              terraform validate
+              popd
+          fi
+          done
