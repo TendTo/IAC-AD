@@ -31,7 +31,6 @@ INVENTORY = {
                     "port": 51820,
                     "ip": "10.0.0.1",
                     "subnet": "10.0.0.1/32",
-                    "out_interface": "eth0",
                     "start": {"year": 2023, "month": 7, "day": 15, "hour": 12, "minute": 10},
                     "open": {"year": 2023, "month": 7, "day": 15, "hour": 12, "minute": 15},
                 },

@@ -1,61 +1,70 @@
 all:
-  hosts:
-    router:
-      ansible_host: 54.152.43.3 # router public ip (don't remove the comment for run.sh)
-      ansible_user: ubuntu # user for ssh
-      ansible_ssh_private_key_file: ./keys/router.pem # ssh key path
-    server:
-      ansible_host: 192.168.1.180 # server private ip (don't remove the comment for run.sh)
-      ansible_user: ubuntu # user for ssh
-      ansible_ssh_private_key_file: ./keys/server.pem # ssh key path
-      ansible_ssh_common_args: '-o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p ubuntu@54.152.43.3"' # ssh proxy command
   children:
     vulnbox:
       hosts:
         vulnbox1:
-          ansible_host: 192.168.2.180 # vulnbox1 (don't remove the comment for run.sh)
-          ansible_user: ubuntu # user for ssh
-          ansible_ssh_private_key_file: ./keys/vulnbox1.pem # ssh key path
-          ansible_ssh_common_args: '-o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p ubuntu@54.152.43.3"' # ssh proxy command
+          ansible_host: 192.168.2.5 # private ip of the vulnbox
+          ansible_ssh_common_args: -o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p  ubuntu@20.126.31.170" # used to connect to the vulnbox through the router
+          ansible_ssh_private_key_file: ./keys/vulnbox1.pem # private key to connect to the vulnbox
+          ansible_user: ubuntu
         vulnbox2:
-          ansible_host: 192.168.2.159 # vulnbox2 (don't remove the comment for run.sh)
-          ansible_user: ubuntu # user for ssh
-          ansible_ssh_private_key_file: ./keys/vulnbox2.pem # ssh key path
-          ansible_ssh_common_args: '-o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p ubuntu@54.152.43.3"' # ssh proxy command
+          ansible_host: 192.168.2.4 # private ip of the vulnbox
+          ansible_ssh_common_args: -o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p  ubuntu@20.126.31.170" # used to connect to the vulnbox through the router
+          ansible_ssh_private_key_file: ./keys/vulnbox2.pem # private key to connect to the vulnbox
+          ansible_user: ubuntu
+  hosts:
+    router:
+      ansible_host: 20.126.31.170 # public ip of the router
+      ansible_ssh_private_key_file: ./keys/router.pem # private key to connect to the router
+      ansible_user: ubuntu
+    server:
+      ansible_host: 192.168.1.4 # private ip of the server
+      ansible_ssh_common_args: -o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p  ubuntu@20.126.31.170" # used to connect to the server through the router
+      ansible_ssh_private_key_file: ./keys/server.pem # private key to connect to the server
+      ansible_user: ubuntu
   vars:
-    host_key_checking: false # disable host key checking
-    wireguard:
-      network: 10.0.0.0/8 # wireguard network
-      router:
-        port: 51820 # wireguard port the router listens on
-        ip: "10.0.0.1" # ip of the router in the vpn
-        subnet: "10.0.0.1/32" # subnet the router belongs to in the vpn
-        out_interface: eth0 # interface the router uses to connect to the internet
-        start: # a cronjob will be created to start the vpn at this time
-          month: 7
-          day: 17
-          hour: 18
-          minute: 0
-        open: # a cronjob will be created to open the vpn and allow attacks between teams at this time
-          month: 7
-          day: 17
-          hour: 19
-          minute: 0
+    ad:
+      default_score: 2500 # default score of a service
+      flag_lifetime: 5 # number of rounds a flag is valid
+      round_time: 60 # duration of a round in seconds
+      timezone: Europe/Rome # timezone of the competition, used to calculate the start and end time
       vulnbox:
-        port: 51820 # wireguard port the vulnbox listens on
-        ip_format: "10.60.%d.1" # ip format of the vulnbox in the vpn. Each team will have a different ip, the %d is the team number
-        subnet: "10.60.0.0/16" # subnet the vulnbox belongs to in the vpn
-        team_mask_offset: 8 # the team's vulnbox will belong in the subnet subnet/mask + team_mask_offset
-      player:
-        ip_format: "10.80.%d.%d" # ip format of the player in the vpn. Each team will have a different ip, the first %d is the team number, the second %d is the player number
-        subnet: "10.80.0.0/16" # subnet the player belongs to in the vpn
-        team_mask_offset: 8 # the team's player will belong in the subnet subnet/mask + team_mask_offset
-      server:
-        port: 51820 # wireguard port the server listens on
-        ip: "10.10.0.1" # ip of the server in the vpn
-        subnet: "10.10.0.0/16" # subnet the server belongs to in the vpn
-    teams: # teams configuration. Each entry is a team and indicates the name of the team and the number of players
+        services_owner: root # owner of the services on the vulnbox
+        services_path: /root/services/ # path where the services are located on the vulnbox
+    teams: # list of teams. Each team has a name and a number of players
       - name: catania
         players: 1
       - name: palermo
         players: 2
+    wireguard:
+      network: 10.0.0.0/8 # network used for the VPN
+      player:
+        ip_format: 10.80.%d.%d # format of the ip of the players. The first is the team number, the second is the player number
+        subnet: 10.80.0.0/16 # subnet used for the VPN
+        team_mask_offset: 8 # offset of the team number in the ip
+      router:
+        ip: 10.0.0.1 # ip of the router
+        open: # time when the VPN is opened, meaning the teams can start attacking
+          day: 15
+          hour: 12
+          minute: 15
+          month: 7
+          year: 2023
+        port: 51820 # port used for the VPN
+        private_ip: 192.168.0.4 # private ip of the router
+        start: # time when the VPN is started. The teams can connect to the VPN, but only their resources are available
+          day: 15
+          hour: 12
+          minute: 10
+          month: 7
+          year: 2023
+        subnet: 10.0.0.1/32 # router's subnet in the VPN
+      server:
+        ip: 10.10.0.1 # ip of the server in the VPN
+        port: 51820 # port used for the VPN
+        subnet: 10.10.0.0/16 # server's subnet in the VPN
+      vulnbox:
+        ip_format: 10.60.%d.1 # format of the ip of the vulnboxes. The first is the team number
+        port: 51820 # port used for the VPN
+        subnet: 10.60.0.0/16 # vulnbox's subnet in the VPN
+        team_mask_offset: 8 # offset of the team number in the ip

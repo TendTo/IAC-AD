@@ -64,7 +64,6 @@ class WireguardRouter(TypedDict):
     port: int
     ip: str
     subnet: str
-    out_interface: str
     start: Open
     open: Open
 
