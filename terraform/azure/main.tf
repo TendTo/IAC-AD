@@ -42,9 +42,9 @@ module "network" {
   server_subnet_cidr  = var.iac_ad_server_subnet_cidr
 }
 
-# # ===============================
-# # Modules
-# # ===============================
+# ===============================
+# Modules
+# ===============================
 module "router" {
   source     = "./modules/router"
   depends_on = [module.network]
@@ -91,9 +91,9 @@ module "vulnbox" {
   vulnbox_image = var.iac_ad_vulnbox_image
 }
 
-# # ===============================
-# # Outputs
-# # ===============================
+# ===============================
+# Outputs
+# ===============================
 output "private_key_vulnbox" {
   value     = module.vulnbox[*].private_key
   sensitive = true
