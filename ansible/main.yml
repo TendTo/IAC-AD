@@ -10,10 +10,10 @@
   hosts:
     - vulnbox
     - server
-
-  tasks:
-    - name: Ensures docker is installed and configured on all hosts that may need it
-      ansible.builtin.include_tasks: ./tasks/docker.yml
+  roles:
+    - role: geerlingguy.docker # Install with `ansible-galaxy role install geerlingguy.docker`
+      vars:
+        docker_users: "{{ ansible_user }}"
 
 - name: Router configuration
   hosts: router
