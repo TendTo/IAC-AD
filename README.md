@@ -28,6 +28,7 @@ The installation can be either system-wide or in a virtual environment.
 
 ```shell
 pip3 install -r requirements.txt
+ansible-galaxy role install geerlingguy.docker
 ```
 
 ## Topology

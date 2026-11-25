@@ -1,7 +1,7 @@
 game:
   mode: classic
   round_time: {{ ad.round_time }}
-  start_time: "{{ open_conf.year }}-{{ open_conf.month }}-{{ open_conf.day }} {{ open_conf.hour }}:{{ open_conf.minute }}:00"
+  start_time: "{{ "%04d" | format(open_conf.year) }}-{{ "%02d" | format(open_conf.month) }}-{{ "%02d" | format(open_conf.day) }} {{ "%02d" | format(open_conf.hour) }}:{{ "%02d" | format(open_conf.minute) }}:00"
   timezone: {{ ad.timezone }}
 
   default_score: {{ ad.default_score }}

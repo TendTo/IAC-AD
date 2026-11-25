@@ -1,23 +1,24 @@
 ---
-- name: Make sure pip is installed
+- name: Make sure Python virtual environment support is installed
   become: true
   ansible.builtin.package:
-    name: python3-pip
+    name: 
+      - python3-pip
+      - python3-venv
+      - pipx
+    state: present
+
+- name: Install uv
+  community.general.pipx:
+    name: uv
     state: present
 
 - name: Clone the ForcAD repository
   ansible.builtin.git:
-    repo: https://github.com/pomo-mondreganto/ForcAD.git
-    version: "3801774eed9d2aaf96c4b2125da18446434bc3a4"
+    repo: https://github.com/TendTo/ForcAD.git
+    version: "a4b26cd2fcbf86bad8b77aed2c3bb9304ae1b9c5"
     dest: ForcAD
     force: true
-
-- name: Install the required dependencies with pip
-  become: true
-  ansible.builtin.pip:
-    requirements: requirements.txt
-    chdir: ForcAD/cli
-    state: present
 
 - name: Copy checkers to the server
   ansible.builtin.copy:
@@ -47,13 +48,13 @@
 
 - name: Setup the deployment
   ansible.builtin.command:
-    cmd: ./control.py setup
+    cmd: /home/{{ ansible_user }}/.local/bin/uv run ./control.py setup
     chdir: ForcAD
     creates: config_backup*
   changed_when: true
 
 - name: Start the deployment
   ansible.builtin.command:
-    cmd: ./control.py start
+    cmd: /home/{{ ansible_user }}/.local/bin/uv run ./control.py start
     chdir: ForcAD
   changed_when: true

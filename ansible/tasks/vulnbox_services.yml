@@ -23,7 +23,7 @@
     recurse: false
   register: services
 
-- name: "Run the start.sh script located in 'services/{{ item.path }}'"
+- name: "Run the start.sh script located in 'services/{item.path}'"
   become: true
   ansible.builtin.command:
     chdir: "{{ item.path }}"

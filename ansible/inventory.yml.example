@@ -7,21 +7,25 @@ all:
           ansible_ssh_common_args: -o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p  ubuntu@20.126.31.170" # used to connect to the vulnbox through the router
           ansible_ssh_private_key_file: ./keys/vulnbox1.pem # private key to connect to the vulnbox
           ansible_user: ubuntu
+          ansible_python_interpreter: /usr/bin/python3
         vulnbox2:
           ansible_host: 192.168.2.4 # private ip of the vulnbox
           ansible_ssh_common_args: -o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p  ubuntu@20.126.31.170" # used to connect to the vulnbox through the router
           ansible_ssh_private_key_file: ./keys/vulnbox2.pem # private key to connect to the vulnbox
           ansible_user: ubuntu
+          ansible_python_interpreter: /usr/bin/python3
   hosts:
     router:
       ansible_host: 20.126.31.170 # public ip of the router
       ansible_ssh_private_key_file: ./keys/router.pem # private key to connect to the router
       ansible_user: ubuntu
+      ansible_python_interpreter: /usr/bin/python3
     server:
       ansible_host: 192.168.1.4 # private ip of the server
       ansible_ssh_common_args: -o ProxyCommand="ssh -i ./keys/router.pem -W %h:%p  ubuntu@20.126.31.170" # used to connect to the server through the router
       ansible_ssh_private_key_file: ./keys/server.pem # private key to connect to the server
       ansible_user: ubuntu
+      ansible_python_interpreter: /usr/bin/python3
   vars:
     ad:
       default_score: 2500 # default score of a service

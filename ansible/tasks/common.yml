@@ -2,10 +2,12 @@
 - name: Install wireguard (Debian)
   become: true
   ansible.builtin.apt:
-    package: wireguard
+    package:
+      - wireguard
+      - apparmor-utils
     state: present
     update_cache: true
-  when: ansible_os_family == "Debian"
+  when: ansible_facts["os_family"] == "Debian"
 
 - name: Install wireguard (RedHat)
   become: true
@@ -13,7 +15,7 @@
     name: wireguard-tools
     state: present
     update_cache: true
-  when: ansible_os_family == "RedHat"
+  when: ansible_facts["os_family"] == "RedHat"
 
 - name: Install wireguard (Arch)
   become: true
@@ -21,7 +23,12 @@
     name: wireguard-tools
     state: present
     update_cache: true
-  when: ansible_os_family == "Archlinux"
+  when: ansible_facts["os_family"] == "Archlinux"
+
+- name: Disable apparmor (Debian)
+  become: true
+  ansible.builtin.command: aa-complain /etc/apparmor.d/wg-quick
+  when: ansible_facts["os_family"] == "Debian"
 
 - name: Copy authorized keys to /root
   become: true

@@ -33,6 +33,8 @@ PostUp = iptables -A wireguard_%i -s {{ wireguard.player.ip_format | format(loop
 PostUp = iptables -A wireguard_%i -i %i -d {{ wireguard.server.subnet }} -j ACCEPT
 # Rule server -> vulnbox
 PostUp = iptables -A wireguard_%i -s {{ wireguard.server.subnet }} -i %i -d {{ wireguard.vulnbox.subnet }} -j ACCEPT
+# Rule server -> player
+PostUp = iptables -A wireguard_%i -s {{ wireguard.server.subnet }} -i %i -d {{ wireguard.player.subnet }} -j ACCEPT
 
 PostUp = iptables -A wireguard_%i -i %i -j DROP
 PostUp = iptables -A wireguard_%i -j RETURN

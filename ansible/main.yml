@@ -12,6 +12,7 @@
     - server
   roles:
     - role: geerlingguy.docker # Install with `ansible-galaxy role install geerlingguy.docker`
+      become: true
       vars:
         docker_users: "{{ ansible_user }}"
 
