@@ -24,6 +24,7 @@ resource "openstack_networking_network_v2" "network" {
 # ===============================
 resource "openstack_networking_router_v2" "external_router" {
   name                = "external_router"
+  admin_state_up      = true
   external_network_id = var.external_network_id
 }
 

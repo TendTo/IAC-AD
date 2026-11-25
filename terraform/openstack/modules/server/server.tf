@@ -39,10 +39,11 @@ resource "openstack_networking_port_v2" "server_port" {
 # Server instance
 # ===========================================
 resource "openstack_compute_instance_v2" "server" {
-  name        = "server_instance"
-  image_id    = var.server_image_id
-  flavor_name = var.server_flavor_name
-  key_pair    = openstack_compute_keypair_v2.keypair.name
+  name         = "server_instance"
+  image_id     = var.server_image_id
+  flavor_name  = var.server_flavor_name
+  key_pair     = openstack_compute_keypair_v2.keypair.name
+  config_drive = true
 
   metadata = {
     application = "server"

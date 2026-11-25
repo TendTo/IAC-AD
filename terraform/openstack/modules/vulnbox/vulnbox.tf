@@ -39,10 +39,11 @@ resource "openstack_networking_port_v2" "vulnbox_port" {
 # Vulnbox instance
 # ===========================================
 resource "openstack_compute_instance_v2" "vulnbox" {
-  name        = "vulnbox_instance_${var.team_id}"
-  image_id    = var.vulnbox_image_id
-  flavor_name = var.vulnbox_flavor_name
-  key_pair    = openstack_compute_keypair_v2.keypair.name
+  name         = "vulnbox_instance_${var.team_id}"
+  image_id     = var.vulnbox_image_id
+  flavor_name  = var.vulnbox_flavor_name
+  key_pair     = openstack_compute_keypair_v2.keypair.name
+  config_drive = true
 
   metadata = {
     application = "vunlbox_${var.team_id}"

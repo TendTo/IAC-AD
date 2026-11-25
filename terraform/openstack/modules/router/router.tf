@@ -60,10 +60,11 @@ resource "openstack_networking_port_v2" "router_port" {
 # Router instance instance
 # ===========================================
 resource "openstack_compute_instance_v2" "router" {
-  name            = "router_instance"
-  image_id        = var.router_image_id
-  flavor_name     = var.router_flavor_name
-  key_pair        = openstack_compute_keypair_v2.keypair.name
+  name         = "router_instance"
+  image_id     = var.router_image_id
+  flavor_name  = var.router_flavor_name
+  key_pair     = openstack_compute_keypair_v2.keypair.name
+  config_drive = true
 
   metadata = {
     application = "router"
